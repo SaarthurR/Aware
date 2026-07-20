@@ -88,3 +88,24 @@ test("wake validation enforces a nonempty, duplicate-free fixed allowlist", () =
   assert.throws(() => core.validateWake({ apps: ["chatgpt", "chatgpt"], duration_minutes: 30 }), /Invalid app/);
   assert.throws(() => core.validateWake({ apps: ["terminal"], duration_minutes: 30 }), /Invalid app/);
 });
+
+test("clipboard config blob parses and normalizes valid input", () => {
+  const secret = "a".repeat(43);
+  assert.deepEqual(
+    core.parseConfigBlob(`{"endpoint":"https://w.example.workers.dev/","kid":"phone-v1","secret":"${secret}"}`),
+    { endpoint: "https://w.example.workers.dev", kid: "phone-v1", secret },
+  );
+  // key_id is accepted as an alias for kid.
+  assert.equal(
+    core.parseConfigBlob(`{"endpoint":"https://w.example.workers.dev","key_id":"phone-v2","secret":"${secret}"}`).kid,
+    "phone-v2",
+  );
+});
+
+test("clipboard config blob rejects unsafe or incomplete input", () => {
+  const secret = "a".repeat(43);
+  assert.throws(() => core.parseConfigBlob("not json"), /valid Aware config JSON/);
+  assert.throws(() => core.parseConfigBlob(`{"endpoint":"http://insecure","kid":"phone-v1","secret":"${secret}"}`), /HTTPS/);
+  assert.throws(() => core.parseConfigBlob(`{"endpoint":"https://w.example.workers.dev","kid":"bad kid","secret":"${secret}"}`), /key ID/);
+  assert.throws(() => core.parseConfigBlob(`{"endpoint":"https://w.example.workers.dev","kid":"phone-v1","secret":"short"}`), /base64url/);
+});

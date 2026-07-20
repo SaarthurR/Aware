@@ -7,7 +7,19 @@ const KID_KEY = "aware.phone.kid";
 const SECRET_KEY = "aware.phone.secret";
 const LAST_SESSION_KEY = "aware.last.session";
 
-async function setup() {
+function saveConfig(config) {
+  Keychain.set(ENDPOINT_KEY, config.endpoint);
+  Keychain.set(KID_KEY, config.kid);
+  Keychain.set(SECRET_KEY, config.secret);
+}
+
+async function setupFromClipboard() {
+  const text = Pasteboard.paste();
+  if (!text || !text.trim()) throw new Error("Clipboard is empty; copy your Aware config JSON on the Mac first");
+  saveConfig(RemoteCore.parseConfigBlob(text.trim()));
+}
+
+async function setupManual() {
   const alert = new Alert();
   alert.title = "Configure Aware";
   alert.message = "Use the Worker URL and the phone key installed in Cloudflare.";
@@ -21,9 +33,20 @@ async function setup() {
   if (!/^https:\/\//.test(endpoint)) throw new Error("Aware endpoint must use HTTPS");
   const secret = alert.textFieldValue(2).trim();
   if (secret.length < 43) throw new Error("Use a random 32-byte base64url secret");
-  Keychain.set(ENDPOINT_KEY, endpoint);
-  Keychain.set(KID_KEY, alert.textFieldValue(1).trim());
-  Keychain.set(SECRET_KEY, secret);
+  saveConfig({ endpoint, kid: alert.textFieldValue(1).trim(), secret });
+}
+
+async function setup() {
+  const menu = new Alert();
+  menu.title = "Configure Aware";
+  menu.message = "Paste a config blob copied from your Mac, or enter the values by hand.";
+  menu.addAction("Paste config from clipboard");
+  menu.addAction("Enter manually");
+  menu.addCancelAction("Cancel");
+  const choice = await menu.presentSheet();
+  if (choice === 0) return setupFromClipboard();
+  if (choice === 1) return setupManual();
+  throw new Error("Setup cancelled");
 }
 
 function uuid() {

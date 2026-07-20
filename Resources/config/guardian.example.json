@@ -1,0 +1,9 @@
+{
+  "cloud_socket_url": "wss://aware.example.workers.dev/v1/host/socket",
+  "key_id": "host-v1",
+  "helper_socket_path": "/var/run/aware/power-helper.sock",
+  "auto_arm": true,
+  "battery_sentinel_hours": 24,
+  "sentinel_drain_percent_per_hour": null,
+  "imessage_adapter_enabled": false
+}

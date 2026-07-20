@@ -1,0 +1,8 @@
+{
+  "socket_path": "/var/run/aware/power-helper.sock",
+  "allowed_uid": 501,
+  "installed_user": "example",
+  "installed_home": "/Users/example",
+  "key_id": "host-v1",
+  "watchdog_seconds": 120
+}

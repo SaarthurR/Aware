@@ -2,12 +2,40 @@
 
 The phone companion uses [Scriptable](https://scriptable.app/) because Apple Shortcuts does not have a native HMAC-SHA256 action. `AwareSigning.js` is a small, audited pure-JavaScript signer, `AwareRemoteCore.js` contains testable controller rules, and `AwareRemote.js` provides setup, wake, polling, status, return-to-sentinel, and disarm actions. The secret stays in Scriptable's Keychain and is never placed in the Shortcut itself.
 
-## Install
+## Easy setup (recommended)
+
+This path collapses the phone side to roughly three taps by delivering a single
+bundled script over iCloud and staging config on the clipboard.
+
+1. Install Scriptable from the App Store on the iPhone and enable its iCloud Drive folder.
+2. On the Mac, from the repository root run:
+
+   ```zsh
+   Resources/scripts/phone-setup.sh 'https://YOUR-WORKER.workers.dev' 'phone-v1'
+   ```
+
+   It builds `AwareRemoteBundle.js`, copies it into Scriptable's iCloud folder as
+   `AwareRemote.js` (so it appears on the phone with no copy-paste), and, after a
+   masked secret prompt, places a config blob on your Mac clipboard. The script
+   never uses sudo and never changes power settings.
+3. On the iPhone (same Apple ID, so Universal Clipboard carries the config over),
+   open Scriptable, run **AwareRemote**, choose **Reconfigure -> Paste config from
+   clipboard**. Then copy anything else to clear the clipboard.
+4. Run **Show host status**. An authenticated `offline` response is expected until
+   Guardian connects; an authentication error means the URL, ID, device clock, or
+   secret differs from the Worker.
+
+The bundle is generated from the individual modules; regenerate it after editing
+any `shortcut/*.js` with `node shortcut/build-bundle.mjs`.
+
+## Manual install (three files)
+
+Use this if you prefer not to use the bundle or iCloud delivery.
 
 1. Install Scriptable from the App Store and enable its iCloud Drive folder.
 2. In Scriptable, create a script named **AwareSigning** and paste the complete contents of `AwareSigning.js`.
 3. Create **AwareRemoteCore** from `AwareRemoteCore.js`, then create **AwareRemote** from `AwareRemote.js`.
-4. Run **AwareRemote** once inside Scriptable, select **Reconfigure**, and enter:
+4. Run **AwareRemote** once inside Scriptable, select **Reconfigure -> Enter manually**, and enter:
    - the HTTPS Worker URL printed by `wrangler deploy`;
    - `phone-v1` (or the currently deployed phone key ID);
    - the matching 32-byte base64url phone secret.
@@ -57,6 +85,7 @@ Every Wake, Extend, Run until reserve, Return to sentinel, and Disarm action gen
 ## Security notes
 
 - Do not paste the phone secret into screenshots, Shortcut text actions, URLs, or query strings.
+- The clipboard config path places the secret on the clipboard briefly. Use it only on your own trusted devices, and copy something else afterward to clear it. Universal Clipboard sends it between your Apple-ID devices; prefer manual entry if that is a concern.
 - Keep **Set Automatically** enabled under iPhone Date & Time; requests tolerate at most five minutes of clock skew.
 - If the phone is lost, remove its key ID from `AWARE_PHONE_KIDS` and `AWARE_HMAC_KEYS`, deploy, then create a new key.
 - The phone API cannot send shell commands, paths, app bundle IDs, or apps outside the four fixed IDs.

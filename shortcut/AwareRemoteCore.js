@@ -69,10 +69,28 @@ function unconfirmedControl(operationID, targetRequestID, action, lastOperation,
   };
 }
 
+function parseConfigBlob(text) {
+  let parsed;
+  try {
+    parsed = JSON.parse(text);
+  } catch (caught) {
+    throw new Error("Clipboard is not valid Aware config JSON");
+  }
+  if (!parsed || typeof parsed !== "object") throw new Error("Clipboard is not valid Aware config JSON");
+  const endpoint = String(parsed.endpoint || "").trim().replace(/\/$/, "");
+  const kid = String(parsed.kid || parsed.key_id || "").trim();
+  const secret = String(parsed.secret || "").trim();
+  if (!/^https:\/\//.test(endpoint)) throw new Error("Config endpoint must use HTTPS");
+  if (!/^[A-Za-z0-9._-]{1,64}$/.test(kid)) throw new Error("Config key ID is invalid");
+  if (secret.length < 43) throw new Error("Config secret must be a 32-byte base64url value");
+  return { endpoint, kid, secret };
+}
+
 module.exports = {
   ALLOWED_APPS,
   WAKE_TERMINAL_STATES,
   controlPayload,
+  parseConfigBlob,
   postReadyAction,
   statusMessage,
   unconfirmedControl,

@@ -20,6 +20,27 @@ struct GuardianConfiguration: Decodable, Sendable {
         case sentinelDrainPercentPerHour = "sentinel_drain_percent_per_hour"
         case iMessageAdapterEnabled = "imessage_adapter_enabled"
     }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        // Decode the URL from a plain string so it round-trips through both JSONDecoder
+        // and PropertyListDecoder. PropertyListDecoder decodes `URL` only from a keyed
+        // {relative,base} container, which the installed plist does not use.
+        let urlString = try container.decode(String.self, forKey: .cloudSocketURL)
+        guard let url = URL(string: urlString) else {
+            throw DecodingError.dataCorruptedError(
+                forKey: .cloudSocketURL, in: container,
+                debugDescription: "cloud_socket_url is not a valid URL"
+            )
+        }
+        cloudSocketURL = url
+        keyID = try container.decode(String.self, forKey: .keyID)
+        helperSocketPath = try container.decode(String.self, forKey: .helperSocketPath)
+        autoArm = try container.decode(Bool.self, forKey: .autoArm)
+        batterySentinelHours = try container.decode(Int.self, forKey: .batterySentinelHours)
+        sentinelDrainPercentPerHour = try container.decodeIfPresent(Double.self, forKey: .sentinelDrainPercentPerHour)
+        iMessageAdapterEnabled = try container.decode(Bool.self, forKey: .iMessageAdapterEnabled)
+    }
 }
 
 struct PowerHelperClient: Sendable {

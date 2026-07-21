@@ -277,18 +277,18 @@ function rollback_fresh_install() {
 }
 
 function cleanup() {
-  local status="$?"
+  local exit_status="$?"
   local preserve_stage=0
   trap - EXIT INT TERM
   if (( upgrade_destructive == 1 && upgrade_committed == 0 )); then
-    rollback_upgrade || { echo "Upgrade rollback failed; keep the Mac attended and restore from $root_stage" >&2; status=71; preserve_stage=1; }
+    rollback_upgrade || { echo "Upgrade rollback failed; keep the Mac attended and restore from $root_stage" >&2; exit_status=71; preserve_stage=1; }
   fi
-  if (( status != 0 && fresh_attempt_active == 1 && fresh_committed == 0 )); then
-    rollback_fresh_install || { echo "Fresh-install rollback failed; keep the Mac attended" >&2; status=71; preserve_stage=1; }
+  if (( exit_status != 0 && fresh_attempt_active == 1 && fresh_committed == 0 )); then
+    rollback_fresh_install || { echo "Fresh-install rollback failed; keep the Mac attended" >&2; exit_status=71; preserve_stage=1; }
   fi
   [[ -z "$user_stage" ]] || /usr/bin/sudo -u "$console_user" /bin/rm -rf -- "$user_stage"
   [[ -z "$root_stage" || "$preserve_stage" -eq 1 ]] || /bin/rm -rf -- "$root_stage"
-  exit "$status"
+  exit "$exit_status"
 }
 trap cleanup EXIT
 trap 'exit 130' INT
@@ -297,7 +297,7 @@ trap 'exit 143' TERM
 cd "$repo_dir"
 /usr/bin/sudo -u "$console_user" /usr/bin/swift build -c release
 bin_path="$(/usr/bin/sudo -u "$console_user" /usr/bin/swift build -c release --show-bin-path)"
-bin_path="$(/usr/bin/realpath "$bin_path")"
+bin_path="${bin_path:A}"
 [[ "$bin_path" == "$repo_dir"/.build/* ]] || { echo "Swift bin path escaped the repository build directory" >&2; exit 66; }
 for binary in AwarePowerHelper AwareGuardian; do
   source_path="$bin_path/$binary"
